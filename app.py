@@ -9,16 +9,23 @@ app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 
 toolbar = DebugToolbarExtension(app)
 
-responses = []
+user_input = "responses"
 
 @app.route('/')
 def start_page():
-    responses.clear()
     return render_template("home.html", survey=satisfaction_survey)
+
+@app.route('/start_survey', methods=["POST"])
+def start_session():
+    session[user_input] = []
+    return redirect("/questions/0")
 
 @app.route('/questions/<int:qid>')
 def find_question(qid):
-        if (len(responses) != qid):
+        responses = session.get(user_input)
+        if (responses is None):
+            return redirect('/')
+        elif (len(responses) != qid):
             flash(f"Invalid command. Please complete question {len(responses)+1}.")
             return redirect(f"/questions/{len(responses)}")
         else:
@@ -27,7 +34,9 @@ def find_question(qid):
 @app.route('/answer', methods=["POST"])
 def collect_answer():
     choice = request.form['answer']
+    responses = session[user_input]
     responses.append(choice)
+    session[user_input] = responses
 
     if (len(responses) == len(satisfaction_survey.questions)):
         return redirect("/complete")
